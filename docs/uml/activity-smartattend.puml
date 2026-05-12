@@ -1,0 +1,64 @@
+@startuml SmartAttend_Activity
+skinparam shadowing false
+
+start
+:Teacher login;
+:Teacher create/select course;
+if (Student already invited?) then (no)
+  :Teacher invite student by email;
+endif
+
+:Student login/register with invited email;
+if (Invitation pending?) then (yes)
+  :Student accept invitation;
+  :Create active enrollment;
+else (no)
+  :Show no pending invitation;
+endif
+
+if (Student has face embedding?) then (no)
+  :Open face registration;
+  :Capture one face image;
+  if (Exactly one face detected?) then (yes)
+    :Extract and normalize 512D embedding;
+    :Save face embedding;
+  else (no)
+    :Show NO_FACE or MULTIPLE_FACES;
+    stop
+  endif
+endif
+
+:Teacher open attendance session;
+:Student opens dashboard;
+:System loads open sessions by active enrollment;
+if (Open session exists?) then (yes)
+  :Student starts camera scan;
+  repeat
+    :Preview camera continuously;
+    :Skip frames and run motion gate;
+    if (Face stable enough?) then (yes)
+      :Send resized frame to Face API;
+      :Detect face and extract embedding;
+      :Compare with cached embeddings;
+    else (no)
+      :Wait for stable face;
+    endif
+  repeat while (Not matched and retries remain?)
+
+  if (Matched same student and confidence >= threshold?) then (yes)
+    :Run stability check;
+    if (Not checked in before?) then (yes)
+      :Insert attendance record method=face;
+      :Show check-in success;
+    else (no)
+      :Show already checked in;
+    endif
+  else (no)
+    :Show low confidence / no face / multiple faces;
+  endif
+else (no)
+  :Show no open session for this student;
+endif
+
+stop
+@enduml

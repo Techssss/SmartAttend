@@ -1,0 +1,59 @@
+@startuml SmartAttend_Sequence_Face_CheckIn
+autonumber
+actor Student
+participant "React Student UI" as UI
+participant "Vite Proxy\nlocalhost:3000" as Proxy
+participant "FastAPI Face API\nlocalhost:8000" as FaceAPI
+participant "InsightFace\nbuffalo_s" as InsightFace
+database "Supabase PostgreSQL" as DB
+
+Student -> UI : Open Student Dashboard
+UI -> Proxy : GET /api/attendance/open-sessions?student_id
+Proxy -> FaceAPI : Forward request
+FaceAPI -> DB : SELECT open sessions by active enrollment
+DB --> FaceAPI : sessions[]
+FaceAPI --> Proxy : sessions[]
+Proxy --> UI : sessions[]
+
+Student -> UI : Start face check-in
+UI -> UI : Camera preview 30 FPS
+UI -> UI : Every 8 frames, motion gate
+UI -> Proxy : POST /api/face/recognize\nbase64 frame + session_id
+Proxy -> FaceAPI : Forward frame
+FaceAPI -> InsightFace : Detect face with SCRFD
+InsightFace --> FaceAPI : one face / no face / multiple faces
+
+alt no face
+  FaceAPI --> UI : matched=false, reason=NO_FACE
+else multiple faces
+  FaceAPI --> UI : matched=false, reason=MULTIPLE_FACES
+else one face
+  FaceAPI -> InsightFace : Extract ArcFace embedding 512D
+  InsightFace --> FaceAPI : normalized embedding
+  FaceAPI -> DB : Load active embeddings\n(cache 30s)
+  DB --> FaceAPI : embeddings[]
+  FaceAPI -> FaceAPI : Cosine similarity
+  alt confidence < threshold
+    FaceAPI --> UI : matched=false, reason=LOW_CONFIDENCE
+  else matched
+    FaceAPI --> UI : matched=true, student_id, confidence
+    UI -> UI : Stability check 5 frames\nand cache result 3s
+    UI -> Proxy : POST /api/attendance/check-in
+    Proxy -> FaceAPI : Forward check-in
+    FaceAPI -> DB : Verify open session
+    FaceAPI -> DB : Verify active enrollment
+    FaceAPI -> DB : Check duplicate record
+    alt already checked in
+      DB --> FaceAPI : existing record
+      FaceAPI --> UI : status=already_checked_in
+    else new record
+      FaceAPI -> DB : INSERT attendance_records\nmethod=face
+      DB --> FaceAPI : record
+      FaceAPI --> UI : status=checked_in
+    end
+  end
+end
+
+UI --> Student : Show status
+
+@enduml

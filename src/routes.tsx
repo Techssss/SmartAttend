@@ -14,14 +14,15 @@ import { Alerts } from './pages/Alerts';
 import { SettingsPage } from './pages/SettingsPage';
 import { TeacherDashboard } from './pages/TeacherDashboard';
 import { StudentDashboard } from './pages/StudentDashboard';
+import { GuestRoute, ProtectedRoute } from './components/ProtectedRoute';
 
 export const router = createBrowserRouter([
   { path: '/', Component: Landing },
-  { path: '/login', Component: Login },
-  { path: '/register', Component: Register },
+  { path: '/login', element: <GuestRoute><Login /></GuestRoute> },
+  { path: '/register', element: <GuestRoute><Register /></GuestRoute> },
   {
     path: '/admin',
-    Component: AdminLayout,
+    element: <ProtectedRoute role="admin"><AdminLayout /></ProtectedRoute>,
     children: [
       { index: true, Component: Dashboard },
       { path: 'attendance', Component: Attendance },
@@ -34,7 +35,7 @@ export const router = createBrowserRouter([
   },
   {
     path: '/teacher',
-    Component: TeacherLayout,
+    element: <ProtectedRoute role="teacher"><TeacherLayout /></ProtectedRoute>,
     children: [
       { index: true, Component: TeacherDashboard },
       { path: 'attendance', Component: Attendance },
@@ -44,7 +45,7 @@ export const router = createBrowserRouter([
   },
   {
     path: '/student',
-    Component: StudentLayout,
+    element: <ProtectedRoute role="student"><StudentLayout /></ProtectedRoute>,
     children: [
       { index: true, Component: StudentDashboard },
       { path: 'history', Component: StudentDashboard },

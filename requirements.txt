@@ -1,0 +1,13 @@
+fastapi>=0.136.1
+uvicorn[standard]
+insightface
+onnxruntime
+opencv-python
+opencv-python-headless==4.11.0.86
+numpy<2,>=1.26.4
+pydantic
+pydantic-settings
+python-dotenv
+supabase
+psycopg[binary]>=3.2
+python-multipart

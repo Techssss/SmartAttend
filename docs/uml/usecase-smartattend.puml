@@ -1,0 +1,66 @@
+@startuml SmartAttend_Use_Case
+left to right direction
+skinparam packageStyle rectangle
+skinparam actorStyle awesome
+
+actor Admin
+actor Teacher
+actor Student
+actor "Face API\nFastAPI + InsightFace" as FaceAPI
+actor "Supabase\nPostgreSQL" as DB
+
+rectangle "SmartAttend" {
+  usecase "Dang nhap / Dang xuat" as UC_AUTH
+  usecase "Quan ly nguoi dung" as UC_USERS
+  usecase "Tao va quan ly khoa hoc" as UC_COURSE
+  usecase "Tao lich hoc" as UC_SCHEDULE
+  usecase "Moi hoc sinh bang email" as UC_INVITE
+  usecase "Chap nhan / Tu choi loi moi" as UC_ACCEPT
+  usecase "Xem thoi khoa bieu" as UC_TIMETABLE
+  usecase "Mo / Dong phien diem danh" as UC_SESSION
+  usecase "Dang ky khuon mat" as UC_FACE_REGISTER
+  usecase "Diem danh bang FaceID" as UC_FACE_CHECKIN
+  usecase "Diem danh thu cong" as UC_MANUAL
+  usecase "Xem danh sach diem danh" as UC_RECORDS
+  usecase "Xem bao cao diem danh" as UC_REPORT
+  usecase "Nhan dien khuon mat" as UC_RECOGNIZE
+  usecase "Luu embedding 512D" as UC_SAVE_EMB
+  usecase "Luu attendance record" as UC_SAVE_ATT
+}
+
+Admin --> UC_AUTH
+Admin --> UC_USERS
+Admin --> UC_REPORT
+
+Teacher --> UC_AUTH
+Teacher --> UC_COURSE
+Teacher --> UC_SCHEDULE
+Teacher --> UC_INVITE
+Teacher --> UC_SESSION
+Teacher --> UC_MANUAL
+Teacher --> UC_RECORDS
+Teacher --> UC_REPORT
+Teacher --> UC_FACE_CHECKIN
+
+Student --> UC_AUTH
+Student --> UC_ACCEPT
+Student --> UC_TIMETABLE
+Student --> UC_FACE_REGISTER
+Student --> UC_FACE_CHECKIN
+
+UC_FACE_REGISTER .> UC_RECOGNIZE : <<include>>
+UC_FACE_REGISTER .> UC_SAVE_EMB : <<include>>
+UC_FACE_CHECKIN .> UC_RECOGNIZE : <<include>>
+UC_FACE_CHECKIN .> UC_SAVE_ATT : <<include>>
+UC_MANUAL .> UC_SAVE_ATT : <<include>>
+
+FaceAPI --> UC_RECOGNIZE
+DB --> UC_SAVE_EMB
+DB --> UC_SAVE_ATT
+DB --> UC_COURSE
+DB --> UC_INVITE
+DB --> UC_ACCEPT
+DB --> UC_TIMETABLE
+DB --> UC_RECORDS
+
+@enduml

@@ -1,22 +1,34 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { GraduationCap, Eye, EyeOff, ArrowRight, Users, BookOpen, ChevronLeft, Camera } from 'lucide-react';
-import { useAuth, UserRole } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
+import { registerAccount } from '../services/authApi';
 
 type Role = 'student' | 'teacher';
+interface PendingRegistration {
+  name: string;
+  email: string;
+  password: string;
+  role: Role;
+  class?: string;
+  department?: string;
+}
 
 export function Register() {
   const [step, setStep] = useState(1);
   const [role, setRole] = useState<Role | null>(null);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [department, setDepartment] = useState('Khoa Công nghệ Thông tin');
+  const [classCode, setClassCode] = useState('CS-301');
   const [password, setPassword] = useState('');
   const [confirmPass, setConfirmPass] = useState('');
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [pendingRegistration, setPendingRegistration] = useState<PendingRegistration | null>(null);
   const { login } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
@@ -28,10 +40,34 @@ export function Register() {
     setError('');
     if (password !== confirmPass) { setError(t('registerPassMismatch')); return; }
     setLoading(true);
-    await new Promise(r => setTimeout(r, 1000));
-    login({ name, email, role: role as UserRole, id: `USR${Math.floor(Math.random() * 9000 + 1000)}` });
-    navigate(role === 'teacher' ? '/teacher' : '/student');
+    if (!role) { setError('Vui lòng chọn vai trò.'); return; }
+    const registration: PendingRegistration = {
+      name,
+      email,
+      password,
+      role,
+      class: role === 'student' ? classCode : undefined,
+      department: role === 'teacher' ? department : undefined,
+    };
+    setPendingRegistration(registration);
+    setStep(3);
     setLoading(false);
+  };
+
+  const completeRegistration = async () => {
+    if (!pendingRegistration) return;
+    setLoading(true);
+    setError('');
+    try {
+      const session = await registerAccount(pendingRegistration);
+      login(session.user, session.token);
+      navigate(session.user.role === 'teacher' ? '/teacher' : '/student');
+    } catch (err) {
+      setStep(2);
+      setError(err instanceof Error ? err.message : 'Không thể đăng ký tài khoản.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -139,7 +175,7 @@ export function Register() {
               {role === 'teacher' && (
                 <div>
                   <label className="block text-[13px] text-gray-700 mb-1.5" style={{ fontWeight: 500 }}>{t('registerFaculty')}</label>
-                  <select className="w-full px-4 py-3 border border-gray-200 rounded-xl text-[14px] bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all">
+                  <select value={department} onChange={e => setDepartment(e.target.value)} className="w-full px-4 py-3 border border-gray-200 rounded-xl text-[14px] bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all">
                     <option>{t('registerFaculty1')}</option>
                     <option>{t('registerFaculty2')}</option>
                     <option>{t('registerFaculty3')}</option>
@@ -150,7 +186,7 @@ export function Register() {
               {role === 'student' && (
                 <div>
                   <label className="block text-[13px] text-gray-700 mb-1.5" style={{ fontWeight: 500 }}>{t('registerClassCode')}</label>
-                  <input placeholder={t('registerClassPH')}
+                  <input value={classCode} onChange={e => setClassCode(e.target.value)} placeholder={t('registerClassPH')}
                     className="w-full px-4 py-3 border border-gray-200 rounded-xl text-[14px] bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all" />
                 </div>
               )}
@@ -190,10 +226,13 @@ export function Register() {
             </div>
             <h2 className="text-gray-900 mb-2" style={{ fontWeight: 700, fontSize: '1.3rem' }}>{t('registerFaceTitle')}</h2>
             <p className="text-gray-500 text-[14px] mb-7" style={{ lineHeight: 1.7 }}>{t('registerFaceDesc')}</p>
-            <button className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[14px] mb-3 transition-all" style={{ fontWeight: 600 }}>
-              <span className="flex items-center justify-center gap-2"><Camera className="w-4 h-4" /> {t('registerFaceBtn')}</span>
+            <button onClick={completeRegistration} disabled={loading} className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[14px] mb-3 transition-all disabled:opacity-60" style={{ fontWeight: 600 }}>
+              <span className="flex items-center justify-center gap-2">
+                {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Camera className="w-4 h-4" />}
+                {t('registerFaceBtn')}
+              </span>
             </button>
-            <button onClick={() => navigate(role === 'teacher' ? '/teacher' : '/student')}
+            <button onClick={completeRegistration} disabled={loading}
               className="w-full py-3.5 border border-gray-200 text-gray-600 hover:bg-gray-50 rounded-xl text-[14px] transition-all" style={{ fontWeight: 500 }}>
               {t('registerFaceSkip')}
             </button>

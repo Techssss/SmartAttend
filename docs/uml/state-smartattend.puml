@@ -1,0 +1,52 @@
+@startuml SmartAttend_State
+skinparam shadowing false
+
+[*] --> Guest
+
+state Guest {
+  [*] --> NotAuthenticated
+  NotAuthenticated --> LoginSubmitted : submit login
+  LoginSubmitted --> Authenticated : valid credentials
+  LoginSubmitted --> NotAuthenticated : invalid credentials
+}
+
+Authenticated --> AdminPortal : role = admin
+Authenticated --> TeacherPortal : role = teacher
+Authenticated --> StudentPortal : role = student
+Authenticated --> Guest : logout
+
+state TeacherPortal {
+  [*] --> CourseDraft
+  CourseDraft --> CourseActive : activate course
+  CourseActive --> SessionOpen : open attendance session
+  SessionOpen --> SessionClosed : close session
+  SessionOpen --> SessionCancelled : cancel session
+  SessionClosed --> CourseActive
+  SessionCancelled --> CourseActive
+  CourseActive --> CourseArchived : archive course
+}
+
+state StudentPortal {
+  [*] --> WaitingInvitation
+  WaitingInvitation --> Enrolled : accept invitation
+  WaitingInvitation --> InvitationDeclined : decline invitation
+  Enrolled --> FaceNotRegistered : no active embedding
+  FaceNotRegistered --> FaceRegistered : register face
+  FaceRegistered --> ReadyForCheckIn : open session exists
+  ReadyForCheckIn --> ScanningFace : start camera
+  ScanningFace --> VerifyingFace : stable face frame
+  VerifyingFace --> CheckedIn : matched and not duplicate
+  VerifyingFace --> ScanRejected : no face / multiple faces / low confidence
+  ScanRejected --> ScanningFace : retry
+  CheckedIn --> Enrolled : next session
+}
+
+state "Attendance Record" as AttendanceRecord {
+  [*] --> NoRecord
+  NoRecord --> Present : face check-in
+  NoRecord --> ManualPresent : manual attendance
+  Present --> AlreadyCheckedIn : repeat check-in
+  ManualPresent --> AlreadyCheckedIn : repeat check-in
+}
+
+@enduml

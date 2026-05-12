@@ -1,15 +1,11 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { Link, useLocation, useNavigate } from 'react-router';
 import { GraduationCap, Eye, EyeOff, ArrowRight, ShieldCheck } from 'lucide-react';
-import { useAuth, UserRole } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
-
-const DEMO_ACCOUNTS = [
-  { role: 'admin' as UserRole, email: 'admin@smartattend.vn', name: 'Quản trị viên', id: 'ADMIN001', color: 'bg-[#1e3a5f]', lightKey: 'loginDemoAdmin' as const, path: '/admin' },
-  { role: 'teacher' as UserRole, email: 'teacher@smartattend.vn', name: 'TS. Nguyễn Minh Tuấn', id: 'TCH001', department: 'Khoa CNTT', lightKey: 'loginDemoTeacher' as const, path: '/teacher' },
-  { role: 'student' as UserRole, email: 'student@smartattend.vn', name: 'Nguyễn Văn An', id: 'STU001', class: 'CS-301', lightKey: 'loginDemoStudent' as const, path: '/student' },
-];
+import { DEMO_ACCOUNTS, type DemoAccount } from '../data/attendance';
+import { loginWithPassword } from '../services/authApi';
 
 const DEMO_STYLES = [
   'bg-blue-50 text-blue-700 border-blue-200',
@@ -26,25 +22,38 @@ export function Login() {
   const { login } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = typeof location.state === 'object' && location.state && 'from' in location.state
+    ? String(location.state.from)
+    : '';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
-    await new Promise(r => setTimeout(r, 800));
-    const demo = DEMO_ACCOUNTS.find(a => a.email === email);
-    if (demo && password === 'demo123') {
-      login({ name: demo.name, email: demo.email, role: demo.role, id: demo.id, class: (demo as any).class, department: (demo as any).department });
-      navigate(demo.path);
-    } else {
-      setError(t('loginError'));
+    try {
+      const session = await loginWithPassword({ email, password });
+      login(session.user, session.token);
+      navigate(from.startsWith('/') ? from : `/${session.user.role}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('loginError'));
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
-  const handleDemoLogin = (acc: typeof DEMO_ACCOUNTS[0]) => {
-    login({ name: acc.name, email: acc.email, role: acc.role, id: acc.id, class: (acc as any).class, department: (acc as any).department });
-    navigate(acc.path);
+  const handleDemoLogin = async (acc: DemoAccount) => {
+    setError('');
+    setLoading(true);
+    try {
+      const session = await loginWithPassword({ email: acc.email, password: 'demo123' });
+      login(session.user, session.token);
+      navigate(from.startsWith('/') ? from : acc.path);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('loginError'));
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -161,7 +170,7 @@ export function Login() {
               {DEMO_ACCOUNTS.map((acc, i) => (
                 <button key={acc.role} onClick={() => handleDemoLogin(acc)}
                   className={`py-3 px-2 rounded-xl border text-center transition-all hover:shadow-md ${DEMO_STYLES[i]}`}>
-                  <p className="text-[12px]" style={{ fontWeight: 600 }}>{t(acc.lightKey)}</p>
+                  <p className="text-[12px]" style={{ fontWeight: 600 }}>{t(acc.labelKey)}</p>
                   <p className="text-[10px] opacity-70 mt-0.5">{t('loginDemoOnClick')}</p>
                 </button>
               ))}

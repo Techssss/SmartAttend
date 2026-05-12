@@ -1,0 +1,37 @@
+@startuml SmartAttend_Sequence_Face_Register
+autonumber
+actor Student
+participant "React Student UI" as UI
+participant "Vite Proxy\nlocalhost:3000" as Proxy
+participant "FastAPI Face API\nlocalhost:8000" as FaceAPI
+participant "InsightFace\nbuffalo_s" as InsightFace
+database "Supabase PostgreSQL" as DB
+
+Student -> UI : Open face registration panel
+Student -> UI : Allow webcam
+UI -> UI : Capture one image from video canvas
+UI -> Proxy : POST /api/face/register\nstudent_id + base64 image
+Proxy -> FaceAPI : Forward request
+FaceAPI -> FaceAPI : Decode image by OpenCV
+FaceAPI -> DB : SELECT app_users\nwhere id=student_id and role=student
+
+alt student not found
+  FaceAPI --> UI : error STUDENT_NOT_FOUND
+else student found
+  FaceAPI -> InsightFace : Detect face with SCRFD
+  alt no face
+    FaceAPI --> UI : error NO_FACE
+  else multiple faces
+    FaceAPI --> UI : error MULTIPLE_FACES
+  else one face
+    FaceAPI -> InsightFace : Extract ArcFace embedding 512D
+    InsightFace --> FaceAPI : embedding + quality score
+    FaceAPI -> FaceAPI : Normalize embedding
+    FaceAPI -> DB : INSERT face_embeddings\nembedding_json, quality, is_active
+    DB --> FaceAPI : embedding row
+    FaceAPI --> UI : embedding_id, quality score
+    UI --> Student : Registration success
+  end
+end
+
+@enduml

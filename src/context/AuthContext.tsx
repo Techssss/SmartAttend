@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, ReactNode } from 'react';
+import { logoutSession } from '../services/authApi';
 
 export type UserRole = 'admin' | 'teacher' | 'student';
 
@@ -14,12 +15,14 @@ export interface AuthUser {
 
 interface AuthContextType {
   user: AuthUser | null;
-  login: (user: AuthUser) => void;
+  token: string | null;
+  login: (user: AuthUser, token?: string) => void;
   logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
+  token: null,
   login: () => {},
   logout: () => {},
 });
@@ -33,19 +36,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return null;
     }
   });
+  const [token, setToken] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem('smartattend_token');
+    } catch {
+      return null;
+    }
+  });
 
-  const login = (u: AuthUser) => {
+  const login = (u: AuthUser, nextToken?: string) => {
     setUser(u);
     localStorage.setItem('smartattend_user', JSON.stringify(u));
+    if (nextToken) {
+      setToken(nextToken);
+      localStorage.setItem('smartattend_token', nextToken);
+    }
   };
 
   const logout = () => {
+    const currentToken = token;
     setUser(null);
+    setToken(null);
     localStorage.removeItem('smartattend_user');
+    localStorage.removeItem('smartattend_token');
+    if (currentToken) {
+      logoutSession(currentToken).catch(() => {});
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, token, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

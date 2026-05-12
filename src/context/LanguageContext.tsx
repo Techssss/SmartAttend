@@ -224,6 +224,7 @@ const translations = {
     studentGreetMorning: 'Good morning',
     studentGreetAfternoon: 'Good afternoon',
     studentGreetEvening: 'Good evening',
+    studentId: 'Student ID',
     studentCode: 'Code',
     studentClass: 'Class',
 
@@ -573,6 +574,7 @@ const translations = {
     studentGreetMorning: 'Chào buổi sáng',
     studentGreetAfternoon: 'Chào buổi chiều',
     studentGreetEvening: 'Chào buổi tối',
+    studentId: 'Mã học viên',
     studentCode: 'Mã',
     studentClass: 'Lớp',
 

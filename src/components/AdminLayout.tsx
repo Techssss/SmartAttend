@@ -38,6 +38,7 @@ export function AdminLayout() {
   };
 
   const title = pageTitles[location.pathname] || t('pageTitleAdminOverview');
+  const recentAlerts: Array<{ id: string; severity: 'high' | 'medium' | 'low'; message: string; location: string; time: string }> = [];
 
   const handleLogout = () => {
     logout();
@@ -90,7 +91,7 @@ export function AdminLayout() {
                   <item.icon className={`w-[18px] h-[18px] shrink-0 ${isActive ? 'text-blue-300' : ''}`} />
                   <span>{item.label}</span>
                   {item.label === t('adminSideNavAlerts') && (
-                    <span className="ml-auto bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full" style={{ fontWeight: 700 }}>3</span>
+                    <span className="ml-auto bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full" style={{ fontWeight: 700 }}>{recentAlerts.length}</span>
                   )}
                 </>
               )}
@@ -150,16 +151,12 @@ export function AdminLayout() {
                   <span className="text-[13px] text-gray-900" style={{ fontWeight: 600 }}>{t('adminNotifTitle')}</span>
                   <span className="text-[11px] text-blue-600" style={{ fontWeight: 500 }}>{t('adminMarkRead')}</span>
                 </div>
-                {[
-                  { msg: t('adminNotif1'), time: t('adminNotif1Time'), dot: 'bg-red-500' },
-                  { msg: t('adminNotif2'), time: t('adminNotif2Time'), dot: 'bg-amber-500' },
-                  { msg: t('adminNotif3'), time: t('adminNotif3Time'), dot: 'bg-blue-500' },
-                ].map((n, i) => (
-                  <div key={i} className="flex items-start gap-3 p-2.5 rounded-xl hover:bg-gray-50 cursor-pointer">
-                    <div className={`w-2 h-2 rounded-full ${n.dot} mt-1.5 shrink-0`} />
+                {recentAlerts.map((alert) => (
+                  <div key={alert.id} className="flex items-start gap-3 p-2.5 rounded-xl hover:bg-gray-50 cursor-pointer">
+                    <div className={`w-2 h-2 rounded-full ${alert.severity === 'high' ? 'bg-red-500' : alert.severity === 'medium' ? 'bg-amber-500' : 'bg-blue-500'} mt-1.5 shrink-0`} />
                     <div>
-                      <p className="text-[13px] text-gray-800" style={{ fontWeight: 500 }}>{n.msg}</p>
-                      <p className="text-[11px] text-gray-400 mt-0.5">{n.time}</p>
+                      <p className="text-[13px] text-gray-800" style={{ fontWeight: 500 }}>{alert.message} — {alert.location}</p>
+                      <p className="text-[11px] text-gray-400 mt-0.5">{alert.time}</p>
                     </div>
                   </div>
                 ))}

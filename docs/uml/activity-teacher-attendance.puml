@@ -1,0 +1,30 @@
+@startuml SmartAttend_Activity_Teacher_Attendance
+start
+:Teacher login;
+:Load teacher courses;
+:Select course;
+:Open attendance session;
+
+fork
+  :Manual attendance option;
+  :Teacher marks present/late/rejected;
+  :Backend verifies teacher owns session;
+  :Backend verifies student active enrollment;
+  :Upsert attendance record method=manual;
+fork again
+  :Face attendance option;
+  :Open camera scanner;
+  :Capture frame with frame skip + motion gate;
+  :Face API recognize student;
+  if (Matched student belongs to course?) then (yes)
+    :Create attendance record method=face;
+  else (no)
+    :Show error / reject scan;
+  endif
+end fork
+
+:Teacher views session records;
+:Absent students are computed from active enrollments without records;
+:Teacher closes session;
+stop
+@enduml

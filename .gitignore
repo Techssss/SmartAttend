@@ -1,1 +1,9 @@
 node_modules
+build
+.env
+backend/data/users.json
+__pycache__/
+*.py[cod]
+.venv/
+.idea/
+*.log
